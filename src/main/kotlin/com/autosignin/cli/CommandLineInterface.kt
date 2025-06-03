@@ -7,7 +7,7 @@ import java.util.Scanner
 
 /**
  * Command-line interface for the Campus Network Auto Sign-In application.
- * Provides interactive commands for setting up credentials and testing login.
+ * Provides interactive commands for selecting accounts, testing login, and more.
  */
 class CommandLineInterface {
     private val logger = LoggerFactory.getLogger(CommandLineInterface::class.java)
@@ -23,22 +23,57 @@ class CommandLineInterface {
         var running = true
         while (running) {
             println("\nAvailable commands:")
-            println("1. Test login")
-            println("2. Show current configuration")
-            println("3. Logout device with MAC 111111111111")
-            println("4. Exit")
+            println("1. Select account")
+            println("2. Test login")
+            println("3. Show current configuration")
+            println("4. Logout device with MAC 111111111111")
+            println("5. Exit")
             print("\nEnter command number: ")
 
             when (readLine()) {
-                "1" -> testLogin()
-                "2" -> showConfiguration()
-                "3" -> logoutDevice()
-                "4" -> {
+                "1" -> selectAccount()
+                "2" -> testLogin()
+                "3" -> showConfiguration()
+                "4" -> logoutDevice()
+                "5" -> {
                     running = false
                     println("Exiting...")
                 }
                 else -> println("Invalid command. Please try again.")
             }
+        }
+    }
+
+    /**
+     * Displays available accounts and prompts the user to select one.
+     */
+    private fun selectAccount() {
+        println("\n=== Select Account ===")
+
+        val accounts = configManager.getAvailableAccounts()
+        if (accounts.isEmpty()) {
+            println("No accounts configured in Config.kt.")
+            return
+        }
+
+        println("Available accounts:")
+        accounts.forEach { (index, username, name) ->
+            println("${index + 1}. $name (username: $username)")
+        }
+
+        print("\nEnter account number (1-${accounts.size}): ")
+        val selection = readLine()?.toIntOrNull()
+
+        if (selection == null || selection < 1 || selection > accounts.size) {
+            println("Invalid selection. Please try again.")
+            return
+        }
+
+        val accountIndex = selection - 1
+        if (configManager.selectAccount(accountIndex)) {
+            println("Selected account: ${accounts[accountIndex].third}")
+        } else {
+            println("Failed to select account. Please try again.")
         }
     }
 
@@ -69,15 +104,25 @@ class CommandLineInterface {
     }
 
     /**
-     * Displays the current configuration.
+     * Displays the current configuration including all available accounts.
      */
     private fun showConfiguration() {
         println("\n=== Current Configuration ===")
 
         val config = configManager.loadConfig()
+        val accounts = configManager.getAvailableAccounts()
 
+        println("Available Accounts:")
+        accounts.forEach { (index, username, name) ->
+            val isSelected = index == config.selectedAccountIndex
+            val marker = if (isSelected) "* " else "  "
+            println("$marker${index + 1}. $name (username: $username)")
+        }
+
+        println("\nSelected Account: ${config.selectedAccountIndex + 1}")
         println("Username: ${config.username}")
         println("Password: ${if (config.password.isNotEmpty()) "********" else "(not set)"}")
+        println("\nOther Settings:")
         println("Login URL: ${config.loginUrl}")
         println("Auto Retry: ${config.autoRetry}")
         println("Max Retries: ${config.maxRetries}")

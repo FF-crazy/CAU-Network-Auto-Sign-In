@@ -13,13 +13,30 @@ class AutoLoginRunner {
     private val logger = LoggerFactory.getLogger(AutoLoginRunner::class.java)
 
     /**
-     * Runs the automatic login process.
+     * Runs the automatic login process with the specified account.
+     *
+     * @param accountIndex The index of the account to use for login (optional)
      */
-    fun run() {
+    fun run(accountIndex: Int? = null) {
         logger.info("Running in auto-login mode")
 
         // Load configuration
         val configManager = ConfigManager()
+
+        // Select account if specified
+        if (accountIndex != null) {
+            if (!configManager.selectAccount(accountIndex)) {
+                logger.error("Invalid account index: $accountIndex")
+                println("Invalid account index: $accountIndex")
+                println("Available accounts:")
+                configManager.getAvailableAccounts().forEach { (index, username, name) ->
+                    println("${index}. $name (username: $username)")
+                }
+                exitProcess(1)
+            }
+            logger.info("Using account at index $accountIndex for login")
+        }
+
         val config = configManager.loadConfig()
 
         if (config.username.isBlank() || config.password.isBlank()) {
@@ -36,7 +53,7 @@ class AutoLoginRunner {
 
         if (result.success) {
             logger.info("Login successful: ${result.message}")
-            println("Successfully logged in to campus network!")
+            println("Successfully logged in to campus network with account: ${config.username}!")
         } else {
             logger.error("Login failed: ${result.message}")
             println("Failed to log in: ${result.message}")
