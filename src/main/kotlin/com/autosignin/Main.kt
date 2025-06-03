@@ -15,6 +15,8 @@ import kotlin.system.exitProcess
  * 3. Auto-login with specific account: Run with --auto-login --account=<index> to login with a specific account
  * 4. Auto-logout mode: Run with --auto-logout to logout a device with MAC 111111111111
  * 5. List accounts: Run with --list-accounts to display all available accounts
+ * 6. Query data usage: Run with --query-usage [--account=<index>] to query the current account's data usage
+ * 7. Auto-select mode: Run with --auto-select to automatically select an account with data usage less than 30GB
  */
 fun main(args: Array<String>) {
     val logger = LoggerFactory.getLogger("Main")
@@ -50,9 +52,27 @@ fun main(args: Array<String>) {
                         println("${index}. $name (username: $username)")
                     }
                 }
+                "--query-usage" -> {
+                    // Check if an account index is specified
+                    val accountIndex = args.getAccountIndex()
+
+                    // Query data usage mode
+                    if (accountIndex != null) {
+                        logger.info("Querying data usage with account index: $accountIndex")
+                        AutoLoginRunner().runQueryDataUsage(accountIndex)
+                    } else {
+                        logger.info("Querying data usage with default account")
+                        AutoLoginRunner().runQueryDataUsage()
+                    }
+                }
+                "--auto-select" -> {
+                    // Auto-select mode - find an account with data usage less than 30GB
+                    logger.info("Running in auto-select mode")
+                    AutoLoginRunner().runAutoSelect()
+                }
                 else -> {
                     println("Unknown command: ${args[0]}")
-                    println("Available commands: --auto-login [--account=<index>], --auto-logout, --list-accounts")
+                    println("Available commands: --auto-login [--account=<index>], --auto-logout, --list-accounts, --query-usage [--account=<index>], --auto-select")
                     exitProcess(1)
                 }
             }

@@ -171,4 +171,129 @@ class NetworkLoginService(private val config: Config) {
             return LoginResult(false, "Error: ${e.message}")
         }
     }
+
+
+    /**
+     * Queries the current account's data usage from the campus network.
+     * This provides information about how much data the account has used.
+     *
+     * @return A DataUsageResult containing the data usage information
+     */
+    fun queryDataUsage(): DataUsageResult {
+        logger.info("Querying data usage for account: ${config.username}")
+
+        // 构建正确的查询URL - 使用ServiceInterface接口
+        val timestamp = System.currentTimeMillis()
+        val callback = "jQuery${(Math.random() * 1000000000000000).toLong()}_$timestamp"
+
+        val queryUrl = if (config.loginUrl.endsWith("/")) {
+            "${config.loginUrl.removeSuffix("/")}:801/eportal/?c=ServiceInterface&a=loadUserFlow&callback=$callback&account=${config.username}&_=$timestamp"
+        } else {
+            "${config.loginUrl}:801/eportal/?c=ServiceInterface&a=loadUserFlow&callback=$callback&account=${config.username}&_=$timestamp"
+        }
+
+        logger.info("Querying data usage from: $queryUrl")
+
+        // Build the request
+        val request = Request.Builder()
+            .url(queryUrl)
+            .header("User-Agent", "CampusAutoLogin/1.0")
+            .header("Referer", config.loginUrl)
+            .build()
+
+        try {
+            // Execute the request
+            client.newCall(request).execute().use { response ->
+                val statusCode = response.code
+                val responseBody = response.body?.string() ?: ""
+
+                logger.debug("Data usage query response: $statusCode, body: $responseBody")
+
+                return if (response.isSuccessful) {
+                    // Parse the JSONP response
+                    parseJsonpDataUsageResponse(responseBody, statusCode)
+                } else {
+                    // HTTP error response
+                    logger.debug("Response body: $responseBody")
+                    DataUsageResult(false, "Query failed with status code: $statusCode", statusCode = statusCode)
+                }
+            }
+        } catch (e: IOException) {
+            logger.error("Network error during data usage query", e)
+            return DataUsageResult(false, "Network error: ${e.message}")
+        } catch (e: Exception) {
+            logger.error("Unexpected error during data usage query", e)
+            return DataUsageResult(false, "Error: ${e.message}")
+        }
+    }
+
+    /**
+     * Parses the JSONP response from the data usage query to extract usage information.
+     *
+     * @param responseBody The JSONP response body from the query
+     * @param statusCode The HTTP status code of the response
+     * @return A DataUsageResult containing the parsed data usage information
+     */
+    private fun parseJsonpDataUsageResponse(responseBody: String, statusCode: Int): DataUsageResult {
+        try {
+            // 移除JSONP包装，提取JSON内容
+            val jsonStart = responseBody.indexOf('(')
+            val jsonEnd = responseBody.lastIndexOf(')')
+
+            if (jsonStart == -1 || jsonEnd == -1 || jsonStart >= jsonEnd) {
+                logger.error("Invalid JSONP response format: $responseBody")
+                return DataUsageResult(false, "Invalid response format", statusCode = statusCode)
+            }
+
+            val jsonContent = responseBody.substring(jsonStart + 1, jsonEnd)
+            logger.debug("Extracted JSON content: $jsonContent")
+
+            // 简单的JSON解析（避免引入额外依赖）
+            val resultMatch = "\"result\"\\s*:\\s*\"([^\"]+)\"".toRegex().find(jsonContent)
+            val msgMatch = "\"msg\"\\s*:\\s*\"([^\"]+)\"".toRegex().find(jsonContent)
+            val userflowMatch = "\"userflow\"\\s*:\\s*(\\d+)".toRegex().find(jsonContent)
+            val useflowMatch = "\"useflow\"\\s*:\\s*(\\d+)".toRegex().find(jsonContent)
+
+            val result = resultMatch?.groupValues?.get(1)
+            val message = msgMatch?.groupValues?.get(1) ?: "Unknown response"
+            val userflow = userflowMatch?.groupValues?.get(1)?.toLongOrNull() // 总流量(MB)
+            val useflow = useflowMatch?.groupValues?.get(1)?.toLongOrNull()   // 已用流量(MB)
+
+            if (result == "ok" && userflow != null && useflow != null) {
+                // 计算剩余流量
+                val remainingMB = userflow - useflow
+
+                // 转换为字节
+                val totalBytes = userflow * 1024 * 1024
+                val usedBytes = useflow * 1024 * 1024
+                val remainingBytes = remainingMB * 1024 * 1024
+
+                return DataUsageResult(
+                    success = true,
+                    message = message,
+                    usedBytes = usedBytes,
+                    usedMegabytes = useflow.toDouble(),
+                    totalBytes = totalBytes,
+                    totalMegabytes = userflow.toDouble(),
+                    remainingBytes = remainingBytes,
+                    remainingMegabytes = remainingMB.toDouble(),
+                    rawUseflow = useflow,
+                    rawUserflow = userflow,
+                    statusCode = statusCode
+                )
+            } else {
+                logger.error("Failed to parse data usage: result=$result, userflow=$userflow, useflow=$useflow")
+                return DataUsageResult(
+                    false,
+                    "Failed to query data usage: $message",
+                    statusCode = statusCode
+                )
+            }
+
+        } catch (e: Exception) {
+            logger.error("Error parsing JSONP data usage response", e)
+            return DataUsageResult(false, "Error parsing response: ${e.message}", statusCode = statusCode)
+        }
+    }
+
 }

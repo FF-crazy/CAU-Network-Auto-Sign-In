@@ -1,6 +1,7 @@
 package com.autosignin.cli
 
 import com.autosignin.config.ConfigManager
+import com.autosignin.network.DataUsageResult
 import com.autosignin.network.NetworkLoginService
 import org.slf4j.LoggerFactory
 import java.util.Scanner
@@ -27,7 +28,8 @@ class CommandLineInterface {
             println("2. Test login")
             println("3. Show current configuration")
             println("4. Logout device with MAC 111111111111")
-            println("5. Exit")
+            println("5. Query data usage")
+            println("6. Exit")
             print("\nEnter command number: ")
 
             when (readLine()) {
@@ -35,7 +37,8 @@ class CommandLineInterface {
                 "2" -> testLogin()
                 "3" -> showConfiguration()
                 "4" -> logoutDevice()
-                "5" -> {
+                "5" -> queryDataUsage()
+                "6" -> {
                     running = false
                     println("Exiting...")
                 }
@@ -151,6 +154,55 @@ class CommandLineInterface {
             println("Logout successful: ${result.message}")
         } else {
             println("Logout failed: ${result.message}")
+        }
+    }
+
+    /**
+     * Queries and displays the current account's data usage.
+     */
+    private fun queryDataUsage() {
+        println("\n=== Query Data Usage ===")
+
+        val config = configManager.loadConfig()
+
+        if (config.username.isBlank() || config.password.isBlank()) {
+            println("Username or password not configured in Config.kt.")
+            return
+        }
+
+        println("Querying data usage for account: ${config.username}")
+
+        val loginService = NetworkLoginService(config)
+        val result = loginService.queryDataUsage()
+
+        if (result.success) {
+            println("Data usage query successful:")
+
+            if (result.usedMegabytes != null) {
+                println("Used data: ${String.format("%.2f", result.usedMegabytes)} MB")
+            } else if (result.usedBytes != null) {
+                println("Used data: ${result.usedBytes} bytes")
+            } else {
+                println("Used data: Not available")
+            }
+
+            if (result.totalMegabytes != null) {
+                println("Total data: ${String.format("%.2f", result.totalMegabytes)} MB")
+            } else if (result.totalBytes != null) {
+                println("Total data: ${result.totalBytes} bytes")
+            } else {
+                println("Total data: Not available")
+            }
+
+            if (result.remainingMegabytes != null) {
+                println("Remaining data: ${String.format("%.2f", result.remainingMegabytes)} MB")
+            } else if (result.remainingBytes != null) {
+                println("Remaining data: ${result.remainingBytes} bytes")
+            } else {
+                println("Remaining data: Not available")
+            }
+        } else {
+            println("Data usage query failed: ${result.message}")
         }
     }
 
