@@ -17,9 +17,22 @@ fun main(args: Array<String>) {
     logger.info("Starting Campus Network Auto Sign-In")
 
     try {
-        if (args.isNotEmpty() && args[0] == "--auto-login") {
-            // Auto-login mode
-            AutoLoginRunner().run()
+        if (args.isNotEmpty()) {
+            when (args[0]) {
+                "--auto-login" -> {
+                    // Auto-login mode
+                    AutoLoginRunner().run()
+                }
+                "--auto-logout" -> {
+                    // Auto-logout mode for device with MAC 111111111111
+                    AutoLoginRunner().runLogout()
+                }
+                else -> {
+                    println("Unknown command: ${args[0]}")
+                    println("Available commands: --auto-login, --auto-logout")
+                    exitProcess(1)
+                }
+            }
         } else {
             // Interactive mode
             val cli = CommandLineInterface()

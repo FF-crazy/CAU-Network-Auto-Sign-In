@@ -11,8 +11,8 @@ package com.autosignin.config
  * @property retryDelayMs Delay between retry attempts in milliseconds
  */
 data class Config(
-    val username: String = "Your-school-username-here",
-    val password: String = "Your-school-password-here",
+    val username: String = "",
+    val password: String = "",
     val loginUrl: String = "http://10.3.38.8/",
     val autoRetry: Boolean = true,
     val maxRetries: Int = 3,

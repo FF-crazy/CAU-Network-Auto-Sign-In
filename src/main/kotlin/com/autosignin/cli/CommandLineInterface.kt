@@ -13,26 +13,26 @@ class CommandLineInterface {
     private val logger = LoggerFactory.getLogger(CommandLineInterface::class.java)
     private val configManager = ConfigManager()
     private val scanner = Scanner(System.`in`)
-    
+
     /**
      * Starts the command-line interface.
      */
     fun start() {
         println("=== Campus Network Auto Sign-In ===")
-        
+
         var running = true
         while (running) {
             println("\nAvailable commands:")
-            println("1. Set credentials")
-            println("2. Test login")
-            println("3. Show current configuration")
+            println("1. Test login")
+            println("2. Show current configuration")
+            println("3. Logout device with MAC 111111111111")
             println("4. Exit")
             print("\nEnter command number: ")
-            
+
             when (readLine()) {
-                "1" -> setCredentials()
-                "2" -> testLogin()
-                "3" -> showConfiguration()
+                "1" -> testLogin()
+                "2" -> showConfiguration()
+                "3" -> logoutDevice()
                 "4" -> {
                     running = false
                     println("Exiting...")
@@ -41,64 +41,41 @@ class CommandLineInterface {
             }
         }
     }
-    
-    /**
-     * Prompts the user to enter their login credentials and saves them to the configuration.
-     */
-    private fun setCredentials() {
-        println("\n=== Set Credentials ===")
-        
-        print("Enter username: ")
-        val username = readLine() ?: ""
-        
-        print("Enter password: ")
-        val password = readLine() ?: ""
-        
-        print("Enter login URL (leave empty for default): ")
-        val loginUrl = readLine()?.takeIf { it.isNotEmpty() }
-        
-        val success = configManager.createConfig(username, password, loginUrl)
-        
-        if (success) {
-            println("Credentials saved successfully!")
-        } else {
-            println("Failed to save credentials. Please try again.")
-        }
-    }
-    
+
+
     /**
      * Tests the login functionality with the current configuration.
      */
     private fun testLogin() {
         println("\n=== Test Login ===")
-        
+
         val config = configManager.loadConfig()
-        
+
         if (config.username.isBlank() || config.password.isBlank()) {
-            println("Username or password not configured. Please set credentials first.")
+            println("Username or password not configured in Config.kt.")
             return
         }
-        
+
         println("Attempting to log in with username: ${config.username}")
-        
+
         val loginService = NetworkLoginService(config)
         val result = loginService.login()
-        
+
         if (result.success) {
             println("Login successful: ${result.message}")
         } else {
             println("Login failed: ${result.message}")
         }
     }
-    
+
     /**
      * Displays the current configuration.
      */
     private fun showConfiguration() {
         println("\n=== Current Configuration ===")
-        
+
         val config = configManager.loadConfig()
-        
+
         println("Username: ${config.username}")
         println("Password: ${if (config.password.isNotEmpty()) "********" else "(not set)"}")
         println("Login URL: ${config.loginUrl}")
@@ -106,7 +83,32 @@ class CommandLineInterface {
         println("Max Retries: ${config.maxRetries}")
         println("Retry Delay: ${config.retryDelayMs}ms")
     }
-    
+
+    /**
+     * Logs out a device with MAC address 111111111111 from the campus network.
+     */
+    private fun logoutDevice() {
+        println("\n=== Logout Device ===")
+
+        val config = configManager.loadConfig()
+
+        if (config.loginUrl.isBlank()) {
+            println("Login URL not configured in Config.kt.")
+            return
+        }
+
+        println("Attempting to log out device with MAC address: 111111111111")
+
+        val loginService = NetworkLoginService(config)
+        val result = loginService.logout()
+
+        if (result.success) {
+            println("Logout successful: ${result.message}")
+        } else {
+            println("Logout failed: ${result.message}")
+        }
+    }
+
     /**
      * Reads a line from the standard input.
      */

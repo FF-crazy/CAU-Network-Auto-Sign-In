@@ -7,8 +7,8 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /**
- * Service responsible for handling network login operations.
- * Uses OkHttp for making HTTP requests to the campus network login endpoint.
+ * Service responsible for handling network login and logout operations.
+ * Uses OkHttp for making HTTP requests to the campus network endpoints.
  *
  * @property config The configuration containing login credentials and settings
  */
@@ -110,6 +110,64 @@ class NetworkLoginService(private val config: Config) {
             return LoginResult(false, "Network error: ${e.message}")
         } catch (e: Exception) {
             logger.error("Unexpected error during login attempt", e)
+            return LoginResult(false, "Error: ${e.message}")
+        }
+    }
+
+    /**
+     * Logs out a device with the specified MAC address from the campus network.
+     * This is particularly useful for administrative purposes or when a device
+     * needs to be forcibly disconnected.
+     *
+     * @param macAddress The MAC address of the device to log out, defaults to "111111111111"
+     * @return A LoginResult indicating success or failure of the logout operation
+     */
+    fun logout(macAddress: String = "111111111111"): LoginResult {
+        logger.info("Attempting to log out device with MAC address: $macAddress")
+
+        // Construct the logout URL
+        val logoutUrl = if (config.loginUrl.endsWith("/")) {
+            "${config.loginUrl.removeSuffix("/")}:801/eportal/?c=ACSetting&a=Logout&ver=1.0"
+        } else {
+            "${config.loginUrl}:801/eportal/?c=ACSetting&a=Logout&ver=1.0"
+        }
+
+        // Build the request with the MAC address as a parameter
+        val request = Request.Builder()
+            .url("$logoutUrl&wlanusermac=$macAddress")
+            .header("User-Agent", "CampusAutoLogin/1.0")
+            .build()
+
+        try {
+            // Execute the request
+            client.newCall(request).execute().use { response ->
+                val statusCode = response.code
+                val responseBody = response.body?.string() ?: ""
+
+                logger.debug("Logout response: $statusCode, body length: ${responseBody.length}")
+
+                return if (response.isSuccessful) {
+                    // Check for specific success indicators in the response
+                    if (responseBody.contains("success") || 
+                        responseBody.contains("logged out") ||
+                        responseBody.contains("注销成功")) {
+                        LoginResult(true, "Device with MAC $macAddress logged out successfully", statusCode)
+                    } else {
+                        // Response was 200 OK but might not indicate successful logout
+                        logger.debug("Response body: $responseBody")
+                        LoginResult(false, "Logout may have failed: unexpected response content", statusCode)
+                    }
+                } else {
+                    // HTTP error response
+                    logger.debug("Response body: $responseBody")
+                    LoginResult(false, "Logout failed with status code: $statusCode", statusCode)
+                }
+            }
+        } catch (e: IOException) {
+            logger.error("Network error during logout attempt", e)
+            return LoginResult(false, "Network error: ${e.message}")
+        } catch (e: Exception) {
+            logger.error("Unexpected error during logout attempt", e)
             return LoginResult(false, "Error: ${e.message}")
         }
     }
