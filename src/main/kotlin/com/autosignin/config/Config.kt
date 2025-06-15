@@ -24,11 +24,7 @@ data class Account(
  * @property retryDelayMs Delay between retry attempts in milliseconds
  */
 data class Config(
-    val accounts: List<Account> = listOf(
-        Account("", ""),
-        Account("student1", "password1", "Student Account"),
-        Account("teacher1", "password1", "Teacher Account")
-    ),
+    val accounts: List<Account> = emptyList(),
     val selectedAccountIndex: Int = 0,
     val loginUrl: String = "http://10.3.38.8/",
     val autoRetry: Boolean = true,

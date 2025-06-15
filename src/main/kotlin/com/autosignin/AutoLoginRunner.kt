@@ -41,8 +41,8 @@ class AutoLoginRunner {
         val config = configManager.loadConfig()
 
         if (config.username.isBlank() || config.password.isBlank()) {
-            logger.error("Username or password not configured in Config.kt")
-            println("Please configure your username and password in Config.kt.")
+            logger.error("Username or password not configured in account.ini")
+            println("Please configure your username and password in account.ini.")
             exitProcess(1)
         }
 
@@ -73,8 +73,8 @@ class AutoLoginRunner {
         val config = configManager.loadConfig()
 
         if (config.loginUrl.isBlank()) {
-            logger.error("Login URL not configured in Config.kt")
-            println("Please configure your login URL in Config.kt.")
+            logger.error("Login URL not configured in account.ini")
+            println("Please configure your login URL in account.ini.")
             exitProcess(1)
         }
 
@@ -122,8 +122,8 @@ class AutoLoginRunner {
         val config = configManager.loadConfig()
 
         if (config.username.isBlank() || config.password.isBlank()) {
-            logger.error("Username or password not configured in Config.kt")
-            println("Please configure your username and password in Config.kt.")
+            logger.error("Username or password not configured in account.ini")
+            println("Please configure your username and password in account.ini.")
             exitProcess(1)
         }
 
@@ -202,7 +202,7 @@ class AutoLoginRunner {
 
         if (accounts.isEmpty()) {
             logger.error("No accounts available")
-            println("No accounts available. Please configure at least one account in Config.kt.")
+            println("No accounts available. Please configure at least one account in account.ini.")
             exitProcess(1)
         }
 
