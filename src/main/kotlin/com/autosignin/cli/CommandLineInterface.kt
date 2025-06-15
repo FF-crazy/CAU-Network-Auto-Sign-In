@@ -55,7 +55,7 @@ class CommandLineInterface {
 
         val accounts = configManager.getAvailableAccounts()
         if (accounts.isEmpty()) {
-            println("No accounts configured in Config.kt.")
+            println("No accounts configured in account.ini.")
             return
         }
 
@@ -90,7 +90,7 @@ class CommandLineInterface {
         val config = configManager.loadConfig()
 
         if (config.username.isBlank() || config.password.isBlank()) {
-            println("Username or password not configured in Config.kt.")
+            println("Username or password not configured in account.ini.")
             return
         }
 
@@ -141,7 +141,7 @@ class CommandLineInterface {
         val config = configManager.loadConfig()
 
         if (config.loginUrl.isBlank()) {
-            println("Login URL not configured in Config.kt.")
+            println("Login URL not configured in account.ini.")
             return
         }
 
@@ -166,7 +166,7 @@ class CommandLineInterface {
         val config = configManager.loadConfig()
 
         if (config.username.isBlank() || config.password.isBlank()) {
-            println("Username or password not configured in Config.kt.")
+            println("Username or password not configured in account.ini.")
             return
         }
 
